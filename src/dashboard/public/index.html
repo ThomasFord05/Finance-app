@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Autonomous Shopify Store — Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --surface2: #252840;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --border: #2d3148;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    header h1 { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    nav { display: flex; gap: 4px; padding: 0 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    nav button { background: none; border: none; color: var(--text2); padding: 12px 16px; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent; transition: all .2s; }
+    nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+    nav button:hover { color: var(--text); }
+    main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .grid { display: grid; gap: 16px; }
+    .grid-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); margin-bottom: 8px; }
+    .card .value { font-size: 32px; font-weight: 700; }
+    .card .sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
+    .card.accent { border-color: var(--accent); }
+    .card.success { border-color: var(--success); }
+    .card.warn { border-color: var(--warn); }
+    .card.danger { border-color: var(--danger); }
+    .section-title { font-size: 18px; font-weight: 600; margin: 24px 0 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text2); border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge.success { background: rgba(34,197,94,.15); color: var(--success); }
+    .badge.warn { background: rgba(245,158,11,.15); color: var(--warn); }
+    .badge.danger { background: rgba(239,68,68,.15); color: var(--danger); }
+    .badge.info { background: rgba(108,99,255,.15); color: var(--accent); }
+    .badge.neutral { background: rgba(148,163,184,.1); color: var(--text2); }
+    .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .profit-positive { color: var(--success); font-weight: 600; }
+    .profit-negative { color: var(--danger); font-weight: 600; }
+    .loading { color: var(--text2); text-align: center; padding: 40px; }
+    .refresh-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .refresh-bar small { color: var(--text2); font-size: 12px; }
+    .cron-list { display: flex; flex-direction: column; gap: 8px; }
+    .cron-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .cron-item:last-child { border-bottom: none; }
+    .reasoning { font-size: 12px; color: var(--text2); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .alert { background: rgba(245,158,11,.1); border: 1px solid var(--warn); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Autonomous Shopify Store</h1>
+  <div>
+    <span class="status-dot"></span>
+    <span style="font-size:13px;color:var(--text2)" id="last-updated">Loading...</span>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('overview', this)">Overview</button>
+  <button onclick="showPage('products', this)">Products</button>
+  <button onclick="showPage('profit', this)">Profit</button>
+  <button onclick="showPage('orders', this)">Orders</button>
+  <button onclick="showPage('decisions', this)">AI Decisions</button>
+  <button onclick="showPage('approvals', this)">Approvals <span id="approval-badge" style="display:none;background:var(--warn);color:#000;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
+  <button onclick="showPage('marketing', this)">Marketing</button>
+  <button onclick="showPage('scheduler', this)">Scheduler</button>
+</nav>
+
+<main>
+  <!-- OVERVIEW -->
+  <div id="page-overview" class="page active">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">Store Overview</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <small id="overview-ts"></small>
+        <button class="btn btn-primary btn-sm" onclick="loadOverview()">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="grid grid-4" id="stat-cards">
+      <div class="card"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="section-title">Recent AI Decisions</div>
+    <div class="card">
+      <table><thead><tr><th>Agent</th><th>Action</th><th>Status</th><th>Reasoning</th><th>Time</th></tr></thead>
+      <tbody id="recent-decisions"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div id="page-products" class="page">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">Active Products</span>
+      <button class="btn btn-primary btn-sm" onclick="loadProducts()">↻ Refresh</button>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Title</th><th>Category</th><th>Price</th><th>Cost</th><th>Margin</th><th>Tags</th><th>Status</th></tr></thead>
+      <tbody id="products-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- PROFIT -->
+  <div id="page-profit" class="page">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">Profit Analysis</span>
+      <button class="btn btn-primary btn-sm" onclick="loadProfit()">↻ Refresh</button>
+    </div>
+    <div class="grid grid-4" style="margin-bottom:16px">
+      <div class="card success" id="total-revenue-card"><h3>Total Revenue</h3><div class="value" id="total-revenue">—</div></div>
+      <div class="card accent" id="avg-margin-card"><h3>Avg Margin</h3><div class="value" id="avg-margin">—</div></div>
+      <div class="card" id="top-product-card"><h3>Top Product</h3><div class="value" style="font-size:16px" id="top-product">—</div></div>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Product</th><th>Price</th><th>Cost</th><th>Profit/Unit</th><th>Margin</th><th>Est. Sales</th><th>Est. Profit</th></tr></thead>
+      <tbody id="profit-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div id="page-orders" class="page">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">Orders</span>
+      <button class="btn btn-primary btn-sm" onclick="loadOrders()">↻ Refresh</button>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Order #</th><th>Customer</th><th>Total</th><th>Fulfillment</th><th>Provider</th><th>Tracking</th><th>Date</th></tr></thead>
+      <tbody id="orders-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- AI DECISIONS -->
+  <div id="page-decisions" class="page">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">AI Decision Log</span>
+      <select id="agent-filter" onchange="loadDecisions()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:13px">
+        <option value="">All Agents</option>
+        <option value="productDiscovery">Product Discovery</option>
+        <option value="pricingManager">Pricing Manager</option>
+        <option value="contentWriter">Content Writer</option>
+        <option value="fulfillmentHandler">Fulfillment</option>
+        <option value="marketingAgent">Marketing</option>
+      </select>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Agent</th><th>Action</th><th>Status</th><th>Reasoning</th><th>Approval</th><th>Time</th></tr></thead>
+      <tbody id="decisions-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- APPROVALS -->
+  <div id="page-approvals" class="page">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">Pending Human Approvals</span>
+      <button class="btn btn-primary btn-sm" onclick="loadApprovals()">↻ Refresh</button>
+    </div>
+    <div id="approvals-list"><div class="loading">Loading...</div></div>
+  </div>
+
+  <!-- MARKETING -->
+  <div id="page-marketing" class="page">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">Marketing Campaigns</span>
+      <button class="btn btn-primary btn-sm" onclick="loadMarketing()">↻ Refresh</button>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Platform</th><th>Type</th><th>Headline</th><th>UTM</th><th>Clicks</th><th>Revenue</th><th>Date</th></tr></thead>
+      <tbody id="marketing-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- SCHEDULER -->
+  <div id="page-scheduler" class="page">
+    <div class="refresh-bar">
+      <span class="section-title" style="margin:0">Cron Scheduler</span>
+      <button class="btn btn-primary btn-sm" onclick="loadScheduler()">↻ Refresh</button>
+    </div>
+    <div class="card">
+      <div class="cron-list" id="cron-list"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="section-title">Pricing History</div>
+    <div class="card">
+      <table><thead><tr><th>Product</th><th>Old Price</th><th>New Price</th><th>Change</th><th>Reasoning</th><th>Date</th></tr></thead>
+      <tbody id="pricing-history"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+</main>
+
+<script>
+const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const fmtDate = d => d ? new Date(d).toLocaleString() : '—';
+const badge = (text, type) => `<span class="badge ${type}">${text}</span>`;
+
+function statusBadge(status) {
+  const map = { executed:'success', pending_approval:'warn', failed:'danger', pending:'neutral', manual_required:'warn', fulfilled:'success', refunded:'info' };
+  return badge(status ?? '—', map[status] ?? 'neutral');
+}
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  const loaders = { overview: loadOverview, products: loadProducts, profit: loadProfit, orders: loadOrders, decisions: loadDecisions, approvals: loadApprovals, marketing: loadMarketing, scheduler: loadScheduler };
+  loaders[name]?.();
+}
+
+async function api(path) {
+  const r = await fetch(path);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────
+async function loadOverview() {
+  const data = await api('/api/stats');
+  document.getElementById('overview-ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  document.getElementById('last-updated').textContent = 'Live';
+
+  const approvalBadge = document.getElementById('approval-badge');
+  if (data.pendingApprovals > 0) { approvalBadge.textContent = data.pendingApprovals; approvalBadge.style.display = 'inline'; }
+
+  document.getElementById('stat-cards').innerHTML = `
+    <div class="card accent"><h3>Active Products</h3><div class="value">${data.activeProducts}</div><div class="sub">In your Shopify store</div></div>
+    <div class="card success"><h3>Today's Orders</h3><div class="value">${data.todayOrders}</div><div class="sub">Received today</div></div>
+    <div class="card warn"><h3>Pending Approvals</h3><div class="value">${data.pendingApprovals}</div><div class="sub">Requires your review</div></div>
+    <div class="card"><h3>Cron Jobs</h3><div class="value">${data.cronJobs?.length ?? 0}</div><div class="sub">Running autonomously</div></div>
+  `;
+
+  const decData = await api('/api/decisions?limit=10');
+  document.getElementById('recent-decisions').innerHTML = decData.decisions.map(d => `
+    <tr>
+      <td><code style="font-size:12px">${d.agent}</code></td>
+      <td>${d.action}</td>
+      <td>${statusBadge(d.status)}</td>
+      <td><span class="reasoning" title="${d.reasoning ?? ''}">${d.reasoning ?? '—'}</span></td>
+      <td style="color:var(--text2);font-size:12px">${fmtDate(d.created_at)}</td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:20px">No decisions yet</td></tr>';
+}
+
+// ── Products ──────────────────────────────────────────────────────────────
+async function loadProducts() {
+  const data = await api('/api/products');
+  document.getElementById('products-table').innerHTML = data.products.map(p => `
+    <tr>
+      <td><strong>${p.title}</strong>${p.shopify_id ? `<br><code style="font-size:10px;color:var(--text2)">${p.shopify_id}</code>` : ''}</td>
+      <td>${p.category ?? '—'}</td>
+      <td>${fmt.format(p.price)}</td>
+      <td>${p.cost_price ? fmt.format(p.cost_price) : '—'}</td>
+      <td>${p.cost_price ? badge(((p.price - p.cost_price)/p.price*100).toFixed(0)+'%', 'success') : '—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${(p.tags ?? '').slice(0,40)}</td>
+      <td>${statusBadge(p.status)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">No products yet</td></tr>';
+}
+
+// ── Profit ────────────────────────────────────────────────────────────────
+async function loadProfit() {
+  const data = await api('/api/products/profit');
+  document.getElementById('total-revenue').textContent = fmt.format(data.totalRevenue ?? 0);
+  const margins = data.products.filter(p => p.margin_pct > 0).map(p => p.margin_pct);
+  const avgMargin = margins.length ? (margins.reduce((a,b)=>a+b,0)/margins.length).toFixed(1) : 0;
+  document.getElementById('avg-margin').textContent = avgMargin + '%';
+  document.getElementById('top-product').textContent = data.products[0]?.title ?? '—';
+
+  document.getElementById('profit-table').innerHTML = data.products.map(p => {
+    const profitClass = p.profit_per_unit >= 0 ? 'profit-positive' : 'profit-negative';
+    return `<tr>
+      <td><strong>${p.title}</strong></td>
+      <td>${fmt.format(p.price)}</td>
+      <td>${p.cost_price ? fmt.format(p.cost_price) : '—'}</td>
+      <td class="${profitClass}">${fmt.format(p.profit_per_unit)}</td>
+      <td>${badge(p.margin_pct+'%', p.margin_pct >= 50 ? 'success' : p.margin_pct >= 30 ? 'warn' : 'danger')}</td>
+      <td>${p.estimated_sales}</td>
+      <td class="${p.estimated_profit >= 0 ? 'profit-positive' : 'profit-negative'}">${fmt.format(p.estimated_profit)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">No profit data yet</td></tr>';
+}
+
+// ── Orders ────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const data = await api('/api/orders');
+  document.getElementById('orders-table').innerHTML = data.orders.map(o => `
+    <tr>
+      <td><strong>#${o.shopify_order_number ?? o.shopify_order_id}</strong></td>
+      <td>${o.customer_email ?? '—'}</td>
+      <td>${o.total_price ? fmt.format(o.total_price) : '—'}</td>
+      <td>${statusBadge(o.fulfillment_status)}</td>
+      <td>${o.fulfillment_provider ?? '—'}</td>
+      <td>${o.tracking_number ? `<a href="${o.tracking_url ?? '#'}" target="_blank" style="color:var(--accent)">${o.tracking_number}</a>` : '—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(o.created_at)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">No orders yet</td></tr>';
+}
+
+// ── AI Decisions ──────────────────────────────────────────────────────────
+async function loadDecisions() {
+  const agent = document.getElementById('agent-filter').value;
+  const url = '/api/decisions?limit=100' + (agent ? '&agent=' + agent : '');
+  const data = await api(url);
+  document.getElementById('decisions-table').innerHTML = data.decisions.map(d => `
+    <tr>
+      <td><code style="font-size:12px">${d.agent}</code></td>
+      <td>${d.action}</td>
+      <td>${statusBadge(d.status)}</td>
+      <td><span class="reasoning" title="${d.reasoning ?? ''}">${d.reasoning ?? '—'}</span></td>
+      <td>${d.requires_approval ? badge('⚠ Required','warn') : badge('Auto','info')}</td>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(d.created_at)}</td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">No decisions yet</td></tr>';
+}
+
+// ── Approvals ─────────────────────────────────────────────────────────────
+async function loadApprovals() {
+  const data = await api('/api/decisions/pending');
+  const el = document.getElementById('approvals-list');
+  if (data.decisions.length === 0) {
+    el.innerHTML = '<div class="card" style="text-align:center;padding:40px;color:var(--text2)">✓ No pending approvals</div>';
+    return;
+  }
+  el.innerHTML = data.decisions.map(d => {
+    const inp = d.input_data ? JSON.parse(d.input_data) : {};
+    return `
+    <div class="card warn" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-weight:600;margin-bottom:4px">${d.action} — <code style="font-size:13px">${d.agent}</code></div>
+          <div style="color:var(--text2);font-size:13px;margin-bottom:8px">${d.reasoning ?? ''}</div>
+          ${inp.product_name ? `<div style="font-size:13px"><strong>Product:</strong> ${inp.product_name} — ${inp.price ? fmt.format(inp.price) : ''}</div>` : ''}
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">${fmtDate(d.created_at)}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;margin-left:16px">
+          <button class="btn btn-success btn-sm" onclick="approveDecision(${d.id})">✓ Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectDecision(${d.id})">✕ Reject</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function approveDecision(id) {
+  await fetch('/api/decisions/' + id + '/approve', { method: 'POST' });
+  loadApprovals();
+}
+async function rejectDecision(id) {
+  await fetch('/api/decisions/' + id + '/reject', { method: 'POST' });
+  loadApprovals();
+}
+
+// ── Marketing ─────────────────────────────────────────────────────────────
+async function loadMarketing() {
+  const data = await api('/api/marketing');
+  document.getElementById('marketing-table').innerHTML = data.campaigns.map(c => `
+    <tr>
+      <td>${badge(c.platform, 'info')}</td>
+      <td>${c.campaign_type}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.headline ?? ''}">${c.headline ?? '—'}</td>
+      <td><code style="font-size:11px">${c.utm_campaign ?? '—'}</code></td>
+      <td>${c.clicks ?? 0}</td>
+      <td class="profit-positive">${fmt.format(c.revenue ?? 0)}</td>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(c.posted_at)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">No campaigns yet</td></tr>';
+}
+
+// ── Scheduler ─────────────────────────────────────────────────────────────
+async function loadScheduler() {
+  const data = await api('/api/stats');
+  const jobs = data.cronJobs ?? [];
+  const scheduleDesc = { 'ProductDiscovery':'Every 72h (Mon/Thu/Sun 3am)', 'PricingManager':'Every 24h (2am daily)', 'FeaturedProductsRotation':'Weekly (Sun 4am)', 'MarketingAgent':'Weekly (Mon 9am)' };
+  document.getElementById('cron-list').innerHTML = jobs.map(j => `
+    <div class="cron-item">
+      <div>
+        <strong>${j.name}</strong>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${scheduleDesc[j.name] ?? j.schedule}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <code style="font-size:11px;color:var(--text2)">${j.schedule}</code>
+        ${badge('Running', 'success')}
+      </div>
+    </div>`).join('') || '<div style="color:var(--text2);padding:20px;text-align:center">No cron jobs running</div>';
+
+  const phData = await api('/api/pricing-history?limit=20');
+  document.getElementById('pricing-history').innerHTML = phData.history.map(h => {
+    const diff = h.new_price - h.old_price;
+    const cls = diff >= 0 ? 'profit-positive' : 'profit-negative';
+    return `<tr>
+      <td>${h.title ?? h.shopify_id}</td>
+      <td>${fmt.format(h.old_price)}</td>
+      <td>${fmt.format(h.new_price)}</td>
+      <td class="${cls}">${diff >= 0 ? '+' : ''}${fmt.format(diff)}</td>
+      <td><span class="reasoning" title="${h.reasoning ?? ''}">${h.reasoning ?? '—'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(h.changed_at)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">No price changes yet</td></tr>';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadOverview();
+setInterval(loadOverview, 30000); // auto-refresh every 30s
+</script>
+</body>
+</html>
