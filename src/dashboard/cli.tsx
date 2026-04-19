@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import React, { useState, useEffect } from 'react';
 import { render, Text, Box, useApp, useInput } from 'ink';
-import { getStats, getCronStatus } from '../db/queries';
+import { getStats } from '../db/queries';
 
 interface StoreStats {
   activeProducts: number;
@@ -25,7 +25,7 @@ function Dashboard() {
   const [stats, setStats] = useState<StoreStats | null>(null);
   const [tick, setTick] = useState(0);
 
-  useInput((input) => {
+  useInput((input: string) => {
     if (input === 'q') exit();
     if (input === 'r') setTick(t => t + 1);
   });

@@ -25,6 +25,9 @@ async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyMessageCreateParams = any;
+
 export async function callClaude(
   systemPrompt: string,
   userMessage: string,
@@ -37,20 +40,22 @@ export async function callClaude(
   const { maxRetries = 3, maxTokens = MAX_TOKENS, useCache = true } = options;
   const anthropic = getClient();
 
-  const systemBlock: Anthropic.MessageParam['content'] | Anthropic.TextBlockParam | Anthropic.CacheControlEphemeral = useCache
-    ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } } as Anthropic.TextBlockParam & { cache_control: Anthropic.CacheControlEphemeral }]
+  // Prompt caching: wrap system in a text block with cache_control when enabled.
+  // Typed as `any` because the cache_control field is a beta feature not in all SDK type defs.
+  const systemParam: AnyMessageCreateParams = useCache
+    ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
     : systemPrompt;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await anthropic.messages.create({
+      const response = await (anthropic.messages.create as (p: AnyMessageCreateParams) => Promise<Anthropic.Message>)({
         model: MODEL,
         max_tokens: maxTokens,
-        system: systemBlock as string,
+        system: systemParam,
         messages: [{ role: 'user', content: userMessage }],
       });
 
-      const textBlock = response.content.find(b => b.type === 'text');
+      const textBlock = response.content.find((b: Anthropic.ContentBlock) => b.type === 'text');
       const content = textBlock?.type === 'text' ? textBlock.text : '';
 
       const usage = response.usage as Anthropic.Usage & {
