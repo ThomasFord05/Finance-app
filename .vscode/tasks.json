@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Start Server",
+      "type": "shell",
+      "command": "npm run dev",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "new", "tab": "Shopify Server" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "🔍 Run: Product Discovery Agent",
+      "type": "shell",
+      "command": "npx ts-node -e \"require('dotenv/config'); const {ProductDiscoveryAgent} = require('./src/agents/productDiscovery'); new ProductDiscoveryAgent().run().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+      "presentation": { "reveal": "always", "panel": "new", "tab": "Product Discovery" },
+      "problemMatcher": []
+    },
+    {
+      "label": "💰 Run: Pricing Manager",
+      "type": "shell",
+      "command": "npx ts-node -e \"require('dotenv/config'); const {PricingManager} = require('./src/agents/pricingManager'); new PricingManager().run().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+      "presentation": { "reveal": "always", "panel": "new", "tab": "Pricing Manager" },
+      "problemMatcher": []
+    },
+    {
+      "label": "✍️ Run: Content Writer",
+      "type": "shell",
+      "command": "npx ts-node -e \"require('dotenv/config'); const {ContentWriter} = require('./src/agents/contentWriter'); new ContentWriter().updateFeaturedProducts().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+      "presentation": { "reveal": "always", "panel": "new", "tab": "Content Writer" },
+      "problemMatcher": []
+    },
+    {
+      "label": "📦 Run: Fulfillment Handler (test)",
+      "type": "shell",
+      "command": "npx ts-node -e \"require('dotenv/config'); const {FulfillmentHandler} = require('./src/agents/fulfillmentHandler'); console.log('FulfillmentHandler loaded OK — runs via Shopify webhooks in production'); process.exit(0);\"",
+      "presentation": { "reveal": "always", "panel": "new", "tab": "Fulfillment" },
+      "problemMatcher": []
+    },
+    {
+      "label": "📣 Run: Marketing Agent",
+      "type": "shell",
+      "command": "npx ts-node -e \"require('dotenv/config'); const {MarketingAgent} = require('./src/agents/marketingAgent'); new MarketingAgent().run().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+      "presentation": { "reveal": "always", "panel": "new", "tab": "Marketing Agent" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🧪 Run All Tests",
+      "type": "shell",
+      "command": "npm test",
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "new", "tab": "Tests" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🔎 TypeScript Check",
+      "type": "shell",
+      "command": "npx tsc --noEmit",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}
